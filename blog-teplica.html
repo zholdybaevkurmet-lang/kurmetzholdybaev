@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Как я проектирую ИИ для теплицы — Курмет Жолдыбаев</title>
+<meta name="description" content="Курмет Жолдыбаев о том, как проектирует систему автоматизации теплицы: почему ИИ начинается не с модели, а с данных. Raspberry Pi, ESP32, компьютерное зрение, поклапанный полив." />
+<link rel="canonical" href="https://kurmetzholdybaev.kz/blog-teplica.html" />
+
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Как я проектирую ИИ для теплицы: почему начинаю не с модели, а с данных" />
+<meta property="og:description" content="Building in public: архитектура автоматизации теплицы, компьютерное зрение и почему данные важнее модели." />
+<meta property="og:image" content="https://kurmetzholdybaev.kz/kurmet.jpg" />
+<meta property="og:locale" content="ru_RU" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;600;700&family=Onest:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Как я проектирую ИИ для теплицы: почему начинаю не с модели, а с данных",
+  "datePublished": "2026-09-07",
+  "dateModified": "2026-09-07",
+  "inLanguage": "ru",
+  "image": "https://kurmetzholdybaev.kz/kurmet.jpg",
+  "mainEntityOfPage": { "@type": "WebPage", "@id": "https://kurmetzholdybaev.kz/blog-teplica.html" },
+  "author": {
+    "@type": "Person",
+    "name": "Курмет Жолдыбаев",
+    "alternateName": "Kurmet Zholdybaev",
+    "url": "https://kurmetzholdybaev.kz/",
+    "sameAs": ["https://www.linkedin.com/in/kurmet-zholdybaev"]
+  },
+  "publisher": {
+    "@type": "Person",
+    "name": "Курмет Жолдыбаев",
+    "url": "https://kurmetzholdybaev.kz/"
+  }
+}
+</script>
+
+<style>
+  :root{
+    --paper:#FBFAF7; --paper-2:#F1EEE7; --ink:#1A1712; --muted:#726B5E;
+    --green:#274A34; --green-soft:#EBF0EA; --lime:#6f8f00; --line:#E4E0D5;
+    --radius:14px; --maxw:720px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--paper);color:var(--ink);font-family:"Onest",system-ui,sans-serif;font-size:18px;line-height:1.7;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  a{color:var(--green)}
+  h1,h2,h3{font-family:"Unbounded",system-ui,sans-serif;line-height:1.15;letter-spacing:-.01em}
+
+  nav{border-bottom:1px solid var(--line);background:var(--paper)}
+  .nav-inner{max-width:var(--maxw);margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between}
+  .brand{font-family:"Unbounded";font-weight:600;font-size:15px;text-decoration:none;color:var(--ink)}
+  .brand span{color:var(--green)}
+  .back{font-size:14px;text-decoration:none;color:var(--muted)}
+  .back:hover{color:var(--ink)}
+
+  article{padding:56px 0 40px}
+  .eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--green);font-weight:600}
+  article h1{font-size:clamp(28px,5vw,42px);font-weight:600;margin:16px 0 20px}
+  .meta{display:flex;flex-wrap:wrap;gap:8px 16px;color:var(--muted);font-size:15px;padding-bottom:28px;margin-bottom:36px;border-bottom:1px solid var(--line)}
+  .meta strong{color:var(--ink);font-weight:500}
+
+  article h2{font-size:clamp(22px,3.2vw,28px);font-weight:600;margin:44px 0 16px}
+  article p{margin:0 0 20px}
+  article ul{margin:0 0 20px;padding-left:22px}
+  article li{margin-bottom:10px}
+  article strong{font-weight:600}
+  article code{background:var(--paper-2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:.9em;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  article pre{background:var(--ink);color:#e9e6df;border-radius:var(--radius);padding:22px 24px;overflow-x:auto;margin:0 0 24px;line-height:1.6;font-size:14.5px}
+  article pre code{background:none;border:none;padding:0;color:inherit}
+  .lead{font-size:20px;color:var(--ink)}
+  hr{border:none;border-top:1px solid var(--line);margin:40px 0}
+  .signoff{color:var(--muted);font-size:15.5px}
+
+  .subblock{font-family:"Unbounded";font-weight:500;font-size:16px;margin:26px 0 8px}
+
+  footer{border-top:1px solid var(--line);padding:30px 0;margin-top:20px;color:var(--muted);font-size:14px}
+  footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+  footer a{color:var(--muted)}
+  :focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:4px}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="brand">Курмет<span>.</span> Жолдыбаев</a>
+    <a href="/" class="back">← На главную</a>
+  </div>
+</nav>
+
+<article>
+  <div class="wrap">
+    <span class="eyebrow">Статья · Building in public</span>
+    <h1>Как я проектирую ИИ для теплицы: почему начинаю не с модели, а с данных</h1>
+    <div class="meta">
+      <span><strong>Курмет Жолдыбаев</strong></span>
+      <span>Костанай</span>
+      <span>7 сентября 2026</span>
+    </div>
+
+    <p class="lead">У меня есть личный инженерный проект, который я долго вынашивал и наконец довёл до детальной спецификации: система автоматизации закрытой теплицы для зелени и рассады. Сразу честно про стадию — железо ещё не собрано. Но это уже не «идея в голове»: я выбрал конкретные компоненты и свёл спецификацию. То есть проект на бумаге, но бумага очень подробная.</p>
+
+    <p>Обычно про такое пишут, когда всё уже собрано и мигает светодиодами. Я решил написать раньше — на этапе проекта. Когда формулируешь замысел словами, дыры видно сразу. Плюс мне интересна обратная связь до того, как я потрачу месяцы. И я привык строить в открытую — показывать не только результат, но и то, как принимаются решения.</p>
+
+    <p>Эта статья — в основном про то, как я думаю об ИИ-части. И главный вывод у меня получился непопулярный: <strong>начинать надо не с нейросети, а с данных. А до данных — с честного вопроса, где ИИ вообще нужен.</strong></p>
+
+    <h2>Где в теплице нужен ИИ, а где нет</h2>
+    <p>Первое, что важно признать: большая часть автоматизации теплицы — это вообще не ИИ. Это простые правила.</p>
+    <p>Температура выше порога — открыть форточку. Влажность грунта ниже порога — включить полив. Свет по расписанию. Всё это решается обычной логикой на контроллере, без единой строчки машинного обучения. И это правильно: если задачу закрывает <code>if temp &gt; 26: open_vent()</code>, тащить туда нейросеть — инженерная ошибка и лишний источник отказов.</p>
+    <p>Поэтому первый слой системы я проектирую как честную реактивную автоматику на правилах: датчики, пороги, реле. Надёжно и чинится за минуту.</p>
+    <p>ИИ я вижу ровно в двух местах, где правила упираются в потолок:</p>
+    <p><strong>1. Глаз агронома.</strong> Ни один датчик влажности не заметит пятно на листе, дефицит, начало болезни или стресс. Это видит человек глазами при обходе. Компьютерное зрение здесь — прямая замена этого обхода. Для меня это самая ценная часть, поэтому камеры в спецификации стоят изначально.</p>
+    <p><strong>2. Упреждение вместо реакции.</strong> Правило реагирует постфактум: температура уже подскочила. А микроклимат инерционный, и хочется управлять на опережение — предсказать перегрев заранее. Это задача по временным рядам, и правилами она не берётся.</p>
+    <p>И там, и там ИИ бесполезен без одного — без данных. Поэтому первый настоящий этап проекта — не модель, а сбор датасета.</p>
+
+    <h2>Мой подход к ИИ-части: сначала готовые модели, потом свои данные</h2>
+    <p>Я не собираюсь на старте обучать нейросеть с нуля — это не имеет смысла, пока нет своих данных. План другой, и он приземлённый.</p>
+    <p>Контур диагностики, который я закладываю:</p>
+    <pre><code>Камера → фото каждые 12 часов
+→ vision-модель через API → диагноз (дефицит / болезнь / стресс)
+→ команда на Raspberry Pi
+→ точечное действие: клапан или дозатор нужного растения
+→ отчёт в Telegram с фото «до / после»</code></pre>
+    <p>Ключевая идея — <strong>поклапанная адресность</strong>. У меня на каждое растение свой электроклапан и своя капельница, а дозирующие насосы могут менять раствор. Значит, диагноз по камере превращается не в абстрактный алерт, а в конкретное действие для конкретного растения: увидели дефицит на растении №7 — скорректировали именно его питание, а через 12 часов сравнили фото. Именно ради этой адресности в проекте столько клапанов и камер.</p>
+    <p>На старте «модель» — это готовая vision-модель через API (я в своих продуктах уже плотно работаю с AI-API, так что это знакомый инструмент). Своё обучение приходит позже — когда накопится размеченный датасет из моих реальных условий. И вот почему это важнее самой модели.</p>
+
+    <h2>Почему данные, а не модель</h2>
+    <p>Соблазн начать с интересного: взять готовую нейросеть, скормить фото листа, получить «здоров/болен». Но чужая модель, обученная на идеальных студийных снимках, спотыкается о мою реальную теплицу: другое освещение, ракурс камеры, конкретные сорта, пыль на объективе.</p>
+    <p>Значит, ценность не в самой модели — их сейчас много и они доступны, — а в <strong>своих размеченных данных из моих условий</strong>. Это и есть настоящий актив проекта. Отсюда следствие, которое переворачивает порядок работ: <strong>сбор данных должен идти с первого дня</strong>, ещё когда система крутится на голых правилах и готовой vision-модели через API.</p>
+    <p>Что я планирую собирать:</p>
+    <ul>
+      <li><strong>Телеметрию датчиков</strong> как временные ряды: температура и влажность воздуха, влажность грунта по каждому растению, CO₂, освещённость, состояние раствора.</li>
+      <li><strong>Кадры с камер</strong> по расписанию — визуальный ряд, как растения меняются день ото дня.</li>
+      <li><strong>Действия системы</strong> — когда что сработало (полив, проветривание, дозирование). Без этого не связать причину и следствие.</li>
+      <li><strong>Результат</strong> — состояние растений, замеченные проблемы. Самая труднодобываемая, но самая ценная часть разметки.</li>
+    </ul>
+    <p>Тут вылезает честная проблема холодного старта: нет данных → нет своей модели, но чтобы собрать данные, система уже должна работать. Обхожу прагматично: сначала польза на правилах + готовая vision-модель, параллельно с первого дня копятся телеметрия и кадры, разметка по мере накопления, и только потом — дообучение на собранном.</p>
+
+    <h2>Железо: что конкретно я выбрал</h2>
+    <p>Раз данные и адресность в центре, вот спецификация, к которой я пришёл.</p>
+
+    <div class="subblock">Мозг системы</div>
+    <ul>
+      <li>Raspberry Pi 4 — сбор данных, хранение, обработка кадров, локальная логика.</li>
+      <li>ESP32 — отдельный узел под массив датчиков влажности грунта (по датчику на растение).</li>
+    </ul>
+
+    <div class="subblock">Датчики</div>
+    <ul>
+      <li>DHT22 — температура и влажность воздуха.</li>
+      <li>MH-Z19B — CO₂.</li>
+      <li>Ёмкостные датчики влажности грунта — на каждое растение отдельно.</li>
+      <li>pH-метр и TDS/EC-метр — состояние питательного раствора.</li>
+      <li>HC-SR04 — уровень воды в баке.</li>
+      <li>BH1750 — освещённость.</li>
+      <li>DS18B20 — температура по зонам.</li>
+    </ul>
+
+    <div class="subblock">Полив и питание (адресно)</div>
+    <ul>
+      <li>Бак, погружной насос.</li>
+      <li>Электроклапан + регулируемая капельница на каждое растение — то самое поклапанное управление.</li>
+      <li>Перистальтические насосы для питательного раствора (компоненты A/B), коррекции pH и профилактических добавок — из баков концентрата.</li>
+    </ul>
+
+    <div class="subblock">Свет и климат</div>
+    <ul>
+      <li>LED-панели, управление через реле, программируемое расписание.</li>
+      <li>Вытяжной вентилятор с угольным фильтром, регулятор скорости через ШИМ, пассивный приток, осциллятор для обдува.</li>
+    </ul>
+
+    <div class="subblock">Камеры</div>
+    <ul>
+      <li>Pi Camera v3 — под vision-анализ растений.</li>
+      <li>Отдельные камеры видеонаблюдения — контроль 24/7.</li>
+    </ul>
+
+    <div class="subblock">Софт</div>
+    <ul>
+      <li>Raspberry Pi как хаб + сценарии автоматизации.</li>
+      <li>vision-модель через API — анализ фото каждые 12 часов.</li>
+      <li>Telegram-бот — управление и алерты.</li>
+      <li>WireGuard VPN на Pi + DuckDNS — удалённый доступ к системе.</li>
+    </ul>
+
+    <h2>Почему я вообще за это взялся</h2>
+    <p>Пятнадцать лет я работал в бизнесе, в основном в агросекторе — и достаточно повидал, как решения на земле принимаются «на глаз». Потом ушёл в разработку, самостоятельно освоил инструменты и сейчас строю AI-продукты; основной мой проект — <a href="https://primerka.net" target="_blank" rel="noopener">Primerka</a>, платформа виртуальной примерки одежды. Теплица — место, где сходятся два моих интереса: агро, которое я знаю изнутри, и разработка с ИИ, которой занимаюсь сейчас.</p>
+    <p>И именно агро-опыт держит меня в трезвости насчёт ИИ. Я видел достаточно красивых презентаций, которые разбивались о реальное поле. Поэтому план нарочито приземлённый: сначала польза на простых правилах и готовой модели, потом честный сбор данных, и только потом — своё обучение на том, что собрано в моих условиях.</p>
+    <p>Если вы делали похожее — по сбору телеметрии, поклапанному поливу, разметке визуальных датасетов в «полевых» условиях, — мне интересен ваш опыт и грабли. Буду писать по мере продвижения: следующий пост — когда соберу первый узел и пойдёт реальная телеметрия.</p>
+
+    <hr />
+    <p class="signoff">Курмет Жолдыбаев, Костанай. Основатель <a href="https://primerka.net" target="_blank" rel="noopener">Primerka</a>. Больше о проектах — на <a href="/">kurmetzholdybaev.kz</a>, связаться — в <a href="https://www.linkedin.com/in/kurmet-zholdybaev" target="_blank" rel="noopener">LinkedIn</a>.</p>
+  </div>
+</article>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Курмет Жолдыбаев</span>
+    <span><a href="/">На главную →</a></span>
+  </div>
+</footer>
+
+</body>
+</html>
